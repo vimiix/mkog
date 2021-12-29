@@ -1,7 +1,7 @@
 # mkog
 
 ```shell
-usage: mkog.py [-h] -c CONFIG [--tarball TARBALL] [-v]
+usage: python3 mkog.py [-h] -c CONFIG [--tarball TARBALL] [-v]
 
 auto install openGauss database(enable DCF mode)
 

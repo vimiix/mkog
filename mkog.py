@@ -23,6 +23,7 @@ DEFAULT_BASE_DIR = "/opt/opengauss"
 DEFAULT_USER = "omm"
 DEFAULT_GROUP = "dbgrp"
 DEFAULT_PORT = 26000
+DEFAULT_PASSWORD = "og@123456"
 
 
 logging.basicConfig(level=logging.INFO,
@@ -171,7 +172,7 @@ def confirm_user_and_group(username: str, groupname: str) -> None:
     lg.info("check user and group...")
     try:
         group = grp.getgrnam(groupname)
-        lg.info("group '%s' already exists")
+        lg.info("group '%s' already exists", groupname)
     except KeyError:
         # group not exists, add it
         lg.info("group '%s' not found, add it", groupname)
@@ -181,7 +182,7 @@ def confirm_user_and_group(username: str, groupname: str) -> None:
         user = pwd.getpwnam(username)
         if user.pw_gid != group.gr_gid:
             _exit("user '%s' not belongs to group '%s'", username, groupname)
-        lg.info("user '%s' already exists")
+        lg.info("user '%s' already exists", username)
     except KeyError:
         # user not exists, add it
         lg.info("user '%s' not found, add it", username)
@@ -206,7 +207,7 @@ def append_env_to_bashrc(username: str, gausshome: str, data_dir: str) -> None:
     ]
     user = pwd.getpwnam(username)
     with open(os.path.join(user.pw_dir, ".bashrc"), 'a') as f:
-        f.writelines(contents)
+        f.writelines([line + '\n' for line in contents])
     lg.info("append env to bashrc successful")
 
 
@@ -222,12 +223,12 @@ def initdb(username: str, gausshome: str, data_dir: str) -> None:
     gs_initdb = os.path.join(gausshome, 'bin', 'gs_initdb')
     hostname = platform.node()
     # -c to enable dcf mode
-    exit_code = os.system(f"""su - {username}
-    -c "{gs_initdb} -c --nodename={hostname} -w og@123456  -D {data_dir}"
-    """)
+    exit_code = os.system(
+        f'su - {username} -c "{gs_initdb} -c --nodename={hostname} -w {DEFAULT_PASSWORD}  -D {data_dir}"')
     if exit_code != 0:
         _exit("init db failed")
     lg.info("init db successful")
+    lg.warn(f"init db with password: '{DEFAULT_PASSWORD}', change that after installed.")
 
 
 def modify_hba_conf(data_dir: str, host_ips: List[str]) -> None:
@@ -241,7 +242,7 @@ def modify_hba_conf(data_dir: str, host_ips: List[str]) -> None:
     fmt = "host\tall\tall\t%s/32\ttrust"
     contents = [fmt % ip for ip in host_ips]
     with open(os.path.join(data_dir, 'pg_hba.conf'), 'a') as f:
-        f.writelines(contents)
+        f.writelines([line + '\n' for line in contents])
     lg.info("append all host ip to pb_hba.conf successful")
 
 
@@ -289,7 +290,7 @@ def modify_postgresql_conf(data_dir: str, cfg: Config) -> None:
     ]
     contents += replconninfos
     with open(os.path.join(data_dir, 'postgresql.conf'), 'a') as f:
-        f.writelines(contents)
+        f.writelines([line + '\n' for line in contents])
     lg.info("update postgresql.conf successful")
 
 
