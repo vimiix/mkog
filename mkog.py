@@ -127,7 +127,7 @@ def decompress_tarball(tarball_path: str, pkg_path: str) -> None:
     if not os.path.exists(tarball_path):
         _exit("file '%s' not found", tarball_path)
 
-    if os.system("tar -x -f %s -C %s", tarball_path, pkg_path) != 0:
+    if os.system(f"tar -x -f {tarball_path} -C {pkg_path}") != 0:
         _exit("decompress %s to %s failed")
 
 
@@ -182,7 +182,6 @@ def confirm_user_and_group(username: str, groupname: str) -> None:
         lg.info("user '%s' already exists")
     except KeyError:
         # user not exists, add it
-        os.system("useradd ")
         lg.info("user '%s' not found, add it", username)
         if os.system(f"useradd -g {groupname} {username}") != 0:
             _exit("add user '%s' failed", username)
