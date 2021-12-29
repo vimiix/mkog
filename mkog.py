@@ -85,6 +85,14 @@ class Config:
             _exit("config error: hosts required")
         self.hosts = [Host(h['dcf_node_id'], h['ip'], h['role'])
                       for h in d['hosts']]
+        lg.info("load config successful")
+
+    def __str__(self) -> str:
+        return (f"<Config base_dir:{self.base_dir},"
+                f"user:{self.user}>"
+                f"group:{self.group}"
+                f"dcf_stream_id:{self.dcf_stream_id}"
+                f"hosts:{self.host_ips()}")
 
     def host_ips(self) -> List[str]:
         return [h.ip for h in self.hosts]
@@ -306,6 +314,7 @@ def main():
                         version='v0.1', help="show mkog version")
     args = parser.parse_args()
     cfg = Config(args.config)
+    lg.info(str(cfg))
 
     talball_path = args.tarball or fetch_tarball_online()
     pkg_dir, data_dir = prepare_directory(cfg.base_dir)
@@ -315,9 +324,11 @@ def main():
     append_env_to_bashrc(cfg.user, pkg_dir, data_dir)
 
     if os.system(f"chown -R {cfg.user}:{cfg.group} {cfg.base_dir}") != 0:
-        _exit("change dir '%s' owner to %s failed", cfg.base_dir, cfg.user)
+        _exit("change dir '%s' owner to '%s' failed", cfg.base_dir, cfg.user)
+    lg.info("change dir '%s' owner to '%s' successful", cfg.base_dir, cfg.user)
     if os.system(f"chmod -R 755 {cfg.base_dir}") != 0:
         _exit(f"change dir '%s' permissions failed", cfg.base_dir)
+    lg.info(f"change dir '%s' permissions to 755 successful", cfg.base_dir)
 
     initdb(cfg.user, pkg_dir, data_dir)
     modify_hba_conf(data_dir, cfg.host_ips)
