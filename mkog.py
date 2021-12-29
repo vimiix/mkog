@@ -8,6 +8,7 @@ import os
 import re
 import pwd
 import grp
+import ssl
 import platform
 import subprocess
 import json
@@ -27,6 +28,7 @@ DEFAULT_PORT = 26000
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s: %(message)s")
 lg = logging.getLogger()
+ssl._create_default_https_context = ssl._create_unverified_context  # diable ca verify
 
 
 def _exit(msg: str, *args, **kwargs):
@@ -78,7 +80,7 @@ class Config:
         self.group = d.get('group') or DEFAULT_GROUP
         self.port = d.get('port') or DEFAULT_PORT
         self.dcf_stream_id = d.get('dcf_stream_id') or 1
-        if not d.get['hosts']:
+        if not d.get('hosts'):
             _exit("config error: hosts required")
         self.hosts = [Host(h['dcf_node_id'], h['ip'], h['role'])
                       for h in d['hosts']]
@@ -110,7 +112,7 @@ def fetch_tarball_online() -> str:
 
     # download tarball from obs
     lg.info("start download tarball from:\n--> %s", tarball_url)
-    tarball_path, _ = request.urlretrieve(tarball_url)
+    tarball_path, _ = request.urlretrieve(tarball_url, )
     return tarball_path
 
 
@@ -138,11 +140,10 @@ def prepare_directory(base_dir="") -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: tuple of home dir and data dir
     """
+    lg.info("prepare directory...")
     base_dir = base_dir or DEFAULT_BASE_DIR
     if os.path.exists(base_dir):
         _exit("dir '%s' already exists", base_dir)
-    if not os.path.isdir(base_dir):
-        _exit("dir '%s' is not a directory", base_dir)
 
     pkg_dir = os.path.join(base_dir, 'pkg')
     data_dir = os.path.join(base_dir, 'data')
@@ -303,7 +304,7 @@ def main():
     args = parser.parse_args()
     cfg = Config(args.config)
 
-    talball_path = cfg.tarball or fetch_tarball_online()
+    talball_path = args.tarball or fetch_tarball_online()
     pkg_dir, data_dir = prepare_directory(cfg.base_dir)
     confirm_user_and_group(cfg.user, cfg.group)
     decompress_tarball(talball_path, pkg_dir)
