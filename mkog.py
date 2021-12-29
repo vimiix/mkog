@@ -222,6 +222,7 @@ def initdb(username: str, gausshome: str, data_dir: str) -> None:
     lg.info("start init db...")
     gs_initdb = os.path.join(gausshome, 'bin', 'gs_initdb')
     hostname = platform.node()
+    lg.info("nodename: %s", hostname)
     # -c to enable dcf mode
     exit_code = os.system(
         f'su - {username} -c "{gs_initdb} -c --nodename={hostname} -w {DEFAULT_PASSWORD}  -D {data_dir}"')
@@ -314,7 +315,9 @@ def main():
     append_env_to_bashrc(cfg.user, pkg_dir, data_dir)
 
     if os.system(f"chown -R {cfg.user}:{cfg.group} {cfg.base_dir}") != 0:
-        _exit("change dir owner to %s failed", cfg.user)
+        _exit("change dir '%s' owner to %s failed", cfg.base_dir, cfg.user)
+    if os.system(f"chmod -R 755 {cfg.base_dir}") != 0:
+        _exit(f"change dir '%s' permissions failed", cfg.base_dir)
 
     initdb(cfg.user, pkg_dir, data_dir)
     modify_hba_conf(data_dir, cfg.host_ips)
