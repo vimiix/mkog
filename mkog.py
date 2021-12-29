@@ -113,6 +113,7 @@ def fetch_tarball_online() -> str:
     # download tarball from obs
     lg.info("start download tarball from:\n--> %s", tarball_url)
     tarball_path, _ = request.urlretrieve(tarball_url, )
+    lg.info("download tarball successful")
     return tarball_path
 
 
@@ -123,12 +124,13 @@ def decompress_tarball(tarball_path: str, pkg_path: str) -> None:
         tarball_path (str): openGauss tarball file path
         pkg_path (str): dir path to be installed
     """
-    lg.info("try to decompress tarball")
+    lg.info("decompress tarball '%s'", tarball_path)
     if not os.path.exists(tarball_path):
         _exit("file '%s' not found", tarball_path)
 
     if os.system(f"tar -x -f {tarball_path} -C {pkg_path}") != 0:
         _exit("decompress %s to %s failed")
+    lg.info("decompress successful")
 
 
 def prepare_directory(base_dir="") -> Tuple[str, str]:
@@ -305,8 +307,9 @@ def main():
 
     talball_path = args.tarball or fetch_tarball_online()
     pkg_dir, data_dir = prepare_directory(cfg.base_dir)
-    confirm_user_and_group(cfg.user, cfg.group)
+
     decompress_tarball(talball_path, pkg_dir)
+    confirm_user_and_group(cfg.user, cfg.group)
     append_env_to_bashrc(cfg.user, pkg_dir, data_dir)
 
     if os.system(f"chown -R {cfg.user}:{cfg.group} {cfg.base_dir}") != 0:
