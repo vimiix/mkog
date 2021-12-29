@@ -1,0 +1,24 @@
+{
+    "base_dir": "/opt/opengauss",
+    "user": "omm",
+    "group": "dbgrp",
+    "port": 26000,
+    "dcf_stream_id": 1,
+    "hosts": [
+        {
+            "dcf_node_id": 1,
+            "ip": "172.16.0.101",
+            "role": "LEADER"
+        },
+        {
+            "dcf_node_id": 2,
+            "ip": "172.16.0.102",
+            "role": "FOLLWER"
+        },
+        {
+            "dcf_node_id": 3,
+            "ip": "172.16.0.103",
+            "role": "FOLLWER"
+        }
+    ]
+}
