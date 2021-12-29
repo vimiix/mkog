@@ -13,12 +13,12 @@
         {
             "dcf_node_id": 2,
             "ip": "172.16.0.102",
-            "role": "FOLLWER"
+            "role": "FOLLOWER"
         },
         {
             "dcf_node_id": 3,
             "ip": "172.16.0.103",
-            "role": "FOLLWER"
+            "role": "FOLLOWER"
         }
     ]
 }

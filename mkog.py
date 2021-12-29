@@ -293,6 +293,9 @@ def modify_postgresql_conf(data_dir: str, cfg: Config) -> None:
         replconninfos.append(s)
 
     contents = [
+        "listen_addresses = '0.0.0.0'",
+        "local_bind_address = '0.0.0.0'",
+        "remote_read_mode = non_authentication",
         f"port = {cfg.port}",
         f"dcf_node_id = {local_host.dcf_node_id}",
         f"dcf_data_path = '{os.path.join(data_dir, 'dcf_data')}'",
