@@ -142,12 +142,13 @@ def decompress_tarball(tarball_path: str, pkg_path: str) -> None:
     lg.info("decompress successful")
 
 
-def prepare_directory(base_dir="") -> Tuple[str, str]:
+def prepare_directory(base_dir: str, port: int) -> Tuple[str, str]:
     """prepare openGauss home dir and data dir
 
     Args:
-        base_dir (str, optional): base dir for installing openGauss. 
-                                  Defaults to "/opt/opengauss".
+        base_dir (str): base dir for installing openGauss.
+                        defaults to "/opt/opengauss".
+        port (int): database port
     Returns:
         Tuple[str, str]: tuple of home dir and data dir
     """
@@ -157,7 +158,7 @@ def prepare_directory(base_dir="") -> Tuple[str, str]:
         _exit("dir '%s' already exists", base_dir)
 
     pkg_dir = os.path.join(base_dir, 'pkg')
-    data_dir = os.path.join(base_dir, 'data')
+    data_dir = os.path.join(base_dir, 'data', f'dn_{port}')
     if os.system(f"mkdir -p {pkg_dir}") != 0:
         _exit("mkdir '%s' failed", pkg_dir)
     if os.system(f"mkdir -p {data_dir}") != 0:
@@ -217,6 +218,7 @@ def append_env_to_bashrc(username: str, gausshome: str, data_dir: str) -> None:
     with open(os.path.join(user.pw_dir, ".bashrc"), 'a') as f:
         f.writelines([line + '\n' for line in contents])
     lg.info("append env to bashrc successful")
+    lg.info(f"GAUSSHOME={gausshome}, PGDATA={data_dir}")
 
 
 def initdb(username: str, gausshome: str, data_dir: str) -> None:
@@ -235,11 +237,10 @@ def initdb(username: str, gausshome: str, data_dir: str) -> None:
     lg.info("nodename: %s", hostname)
     # -c to enable dcf mode
     exit_code = os.system(
-        f'su - {username} -c "{gs_initdb} -c --nodename={hostname} -w {DEFAULT_PASSWORD}  -D {data_dir}"')
+        f'su - {username} -c "{gs_initdb} -c --nodename={hostname} -w {DEFAULT_PASSWORD}  -D {data_dir} --encoding=UTF-8 --locale=en_US.UTF-8"')
     if exit_code != 0:
         _exit("init db failed")
     lg.info("init db successful")
-    lg.warning(f"init db with password: '{DEFAULT_PASSWORD}', change that after installed.")
 
 
 def modify_hba_conf(data_dir: str, host_ips: List[str]) -> None:
@@ -277,25 +278,31 @@ def modify_postgresql_conf(data_dir: str, cfg: Config) -> None:
     if not local_host:
         _exit("not found local host in config file")
 
+    hostname = platform.node()
+    if '-' in hostname:
+        hostname = hostname.replace('-', '_')
+
     dcf_nodes = []
     for h in cfg.hosts:
         s = '{"stream_id":%d,"node_id":%d,"ip":"%s","port":%d,"role":"%s"}' % (
-            cfg.dcf_stream_id, h.dcf_node_id, h.ip, cfg.port+1, h.role
+            cfg.dcf_stream_id, h.dcf_node_id, h.ip, cfg.port+10, h.role
         )
         dcf_nodes.append(s)
 
     replconninfos = []
     for idx, remote_host in enumerate(others):
         s = "replconninfo%d = 'localhost=%s localport=%d localheartbeatport=%d localservice=%d remotehost=%s remoteport=%d remoteheartbeatport=%d remoteservice=%d'" % (
-            idx+1, local_host.ip, cfg.port+2, cfg.port+3, cfg.port+4,
-            remote_host.ip, cfg.port+2, cfg.port+3, cfg.port+4,
+            idx+1, local_host.ip, cfg.port+1, cfg.port+4, cfg.port+5,
+            remote_host.ip, cfg.port+1, cfg.port+4, cfg.port+5,
         )
         replconninfos.append(s)
 
     contents = [
+        "enable_dcf = on",
         "listen_addresses = '0.0.0.0'",
         "local_bind_address = '0.0.0.0'",
         "remote_read_mode = non_authentication",
+        f"application_name = '{hostname}'"
         f"port = {cfg.port}",
         f"dcf_node_id = {local_host.dcf_node_id}",
         f"dcf_data_path = '{os.path.join(data_dir, 'dcf_data')}'",
@@ -322,7 +329,7 @@ def main():
     lg.info(str(cfg))
 
     talball_path = args.tarball or fetch_tarball_online()
-    pkg_dir, data_dir = prepare_directory(cfg.base_dir)
+    pkg_dir, data_dir = prepare_directory(cfg.base_dir, cfg.port)
 
     decompress_tarball(talball_path, pkg_dir)
     confirm_user_and_group(cfg.user, cfg.group)
@@ -335,6 +342,9 @@ def main():
     initdb(cfg.user, pkg_dir, data_dir)
     modify_hba_conf(data_dir, cfg.host_ips())
     modify_postgresql_conf(data_dir, cfg)
+
+    lg.warning(f"init db with password: '{DEFAULT_PASSWORD}', change it when you first login.")
+    lg.info("Done")
 
 
 if __name__ == "__main__":
