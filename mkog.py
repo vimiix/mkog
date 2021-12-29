@@ -71,7 +71,7 @@ class Config:
         if not os.path.exists(filepath):
             _exit("config file '%s' not exists", filepath)
 
-        with open(filepath, 'w') as f:
+        with open(filepath, 'r') as f:
             d = json.load(f)
         self.base_dir = d.get('base_dir') or DEFAULT_BASE_DIR
         self.user = d.get('user') or DEFAULT_USER
