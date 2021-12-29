@@ -89,9 +89,9 @@ class Config:
 
     def __str__(self) -> str:
         return (f"<Config base_dir:{self.base_dir},"
-                f"user:{self.user}>"
-                f"group:{self.group}"
-                f"dcf_stream_id:{self.dcf_stream_id}"
+                f"user:{self.user},"
+                f"group:{self.group},"
+                f"dcf_stream_id:{self.dcf_stream_id},"
                 f"hosts:{self.host_ips()}")
 
     def host_ips(self) -> List[str]:
@@ -230,6 +230,8 @@ def initdb(username: str, gausshome: str, data_dir: str) -> None:
     lg.info("start init db...")
     gs_initdb = os.path.join(gausshome, 'bin', 'gs_initdb')
     hostname = platform.node()
+    if '-' in hostname:
+        hostname = hostname.replace('-', '_')
     lg.info("nodename: %s", hostname)
     # -c to enable dcf mode
     exit_code = os.system(
@@ -237,7 +239,7 @@ def initdb(username: str, gausshome: str, data_dir: str) -> None:
     if exit_code != 0:
         _exit("init db failed")
     lg.info("init db successful")
-    lg.warn(f"init db with password: '{DEFAULT_PASSWORD}', change that after installed.")
+    lg.warning(f"init db with password: '{DEFAULT_PASSWORD}', change that after installed.")
 
 
 def modify_hba_conf(data_dir: str, host_ips: List[str]) -> None:
@@ -293,8 +295,8 @@ def modify_postgresql_conf(data_dir: str, cfg: Config) -> None:
     contents = [
         f"port = {cfg.port}",
         f"dcf_node_id = {local_host.dcf_node_id}",
-        f"dcf_data_path = '{os.path.join(data_dir, 'dcf_data')}'"
-        f"dcf_log_path = '{os.path.join(data_dir, 'dcf_log')}'"
+        f"dcf_data_path = '{os.path.join(data_dir, 'dcf_data')}'",
+        f"dcf_log_path = '{os.path.join(data_dir, 'dcf_log')}'",
         f"dcf_config='[{','.join(dcf_nodes)}]'",
     ]
     contents += replconninfos
@@ -326,12 +328,9 @@ def main():
     if os.system(f"chown -R {cfg.user}:{cfg.group} {cfg.base_dir}") != 0:
         _exit("change dir '%s' owner to '%s' failed", cfg.base_dir, cfg.user)
     lg.info("change dir '%s' owner to '%s' successful", cfg.base_dir, cfg.user)
-    if os.system(f"chmod -R 755 {cfg.base_dir}") != 0:
-        _exit(f"change dir '%s' permissions failed", cfg.base_dir)
-    lg.info(f"change dir '%s' permissions to 755 successful", cfg.base_dir)
 
     initdb(cfg.user, pkg_dir, data_dir)
-    modify_hba_conf(data_dir, cfg.host_ips)
+    modify_hba_conf(data_dir, cfg.host_ips())
     modify_postgresql_conf(data_dir, cfg)
 
 
