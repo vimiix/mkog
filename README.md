@@ -18,7 +18,7 @@ optional arguments:
 
 ### Configuration
 
-Customize the [mkog.json](./mkog.json) file to suit your demand.
+Customize the [config.json](./config.json) file to suit your demand.
 
 ```json
 {

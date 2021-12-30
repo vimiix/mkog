@@ -18,6 +18,7 @@ from typing import Tuple, List
 import logging
 
 
+
 TARBALL = "https://opengauss.obs.cn-south-1.myhuaweicloud.com/2.1.0/%s/openGauss-2.1.0-%s-64bit.tar.bz2"
 DEFAULT_BASE_DIR = "/opt/opengauss"
 DEFAULT_USER = "omm"
@@ -302,7 +303,7 @@ def modify_postgresql_conf(data_dir: str, cfg: Config) -> None:
         "listen_addresses = '0.0.0.0'",
         "local_bind_address = '0.0.0.0'",
         "remote_read_mode = non_authentication",
-        f"application_name = '{hostname}'"
+        f"application_name = '{hostname}'",
         f"port = {cfg.port}",
         f"dcf_node_id = {local_host.dcf_node_id}",
         f"dcf_data_path = '{os.path.join(data_dir, 'dcf_data')}'",
@@ -320,6 +321,7 @@ def main():
         description="auto install openGauss database(enable DCF mode)")
     parser.add_argument('-c', '--config', required=True,
                         dest='config', action='store', help="mkog config path")
+    # parser.add_argument('-a', '--all', dest='all', action='store_true')
     parser.add_argument('--tarball', dest='tarball', action='store',
                         help="tarball filepath on local dist. [download online default]")
     parser.add_argument('-v', '--version', action='version',
